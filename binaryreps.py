@@ -54,3 +54,7 @@ class GRxLocations(Enum):
     one = 0b01
     two = 0b10
     three = 0b11
+
+class ASMModes(Enum):
+    Load = 0
+    Store = 0
