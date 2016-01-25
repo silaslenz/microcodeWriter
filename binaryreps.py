@@ -1,14 +1,14 @@
 from enum import Enum
 class ALU_MODE(Enum):
-    NOP = 0b0000000000000000000000000
-    Buss = 0b0001000000000000000000000
-    BussComp = 0b0010000000000000000000000
-    Zero = 0b0011000000000000000000000
-    ARaddBuss = 0b0100000000000000000000000
-    ARsubBuss = 0b0101000000000000000000000
-    ARandBuss = 0b0110000000000000000000000
-    ARorBuss = 0b0111000000000000000000000
-    ARaddBuss_NF = 0b1000000000000000000000000
+    NOP = 0b0000
+    Buss = 0b0001
+    BussComp = 0b0010
+    Zero = 0b0011
+    ARaddBuss = 0b0100
+    ARsubBuss = 0b0101
+    ARandBuss = 0b0110
+    ARorBuss = 0b0111
+    ARaddBuss_NF = 0b1000
 
 class LOCATIONS(Enum):
     NOP = 0b000
@@ -57,4 +57,11 @@ class GRxLocations(Enum):
 
 class ASMModes(Enum):
     Load = 0
-    Store = 0
+    Store = 1
+    Add = 2
+    Sub = 3
+    And = 4
+    LogicShiftLeft = 5
+    Branch = 6
+    BranchOnNotEquals = 7
+    Halt = 9
