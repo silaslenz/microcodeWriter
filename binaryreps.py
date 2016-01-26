@@ -42,6 +42,8 @@ class Seq(Enum):
     FromuADR = 0b0101
     JumpIfZ = 0b1000
     JumpIfN = 0b1001
+    JumpIfO = 0b1011
+
 
 class MemoryMode(Enum):
     DirectLocation = 0b00
@@ -65,3 +67,4 @@ class ASMModes(Enum):
     Branch = 6
     BranchOnNotEquals = 7
     Halt = 9
+    Compare = 8
