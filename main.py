@@ -11,7 +11,7 @@ K2 = ["03", "04", "05", "07"]
 
 
 def halt():
-    createASMHex(ASMModes.Halt, GRxLocations.zero, MemoryMode.DirectLocation)
+    return createASMHex(ASMModes.Halt, GRxLocations.zero, MemoryMode.DirectLocation)
 
 
 def writeMIA():
@@ -239,20 +239,25 @@ def create_microfun():
     # 32
     createMicroCode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
                     Seq.JumpIfZ, adressHex=0x34)
-    # 33 do nothing if Z=0
-    createMicroCode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
-    # 34 if Z=1 load IR to PC
+    # 33 if z=1 load IR to PC
     createMicroCode(ALU_MODE.NOP, LOCATIONS.IR, LOCATIONS.PC, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
+    # 34 if Z=0 just move on
+    createMicroCode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
+
+
 
     # Branch always
+    K1[len(K1) - 9] = "35"
+
     # 35
     createMicroCode(ALU_MODE.NOP, LOCATIONS.IR, LOCATIONS.PC, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
 
 
 def save_num_in_place(num, place):  # Uses GR3
-    createASMHex(ASMModes.Load, GRxLocations.three, MemoryMode.ImmediateLocation)
+    tmp=createASMHex(ASMModes.Load, GRxLocations.three, MemoryMode.ImmediateLocation)
     createASMHex(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, num)
     createASMHex(ASMModes.Store, GRxLocations.three, MemoryMode.DirectLocation, place)
+    return tmp
 
 
 def load_from_PM_To_GRx(adressMode: MemoryMode, adress, grx: GRxLocations):
@@ -276,7 +281,7 @@ def increase_location_in_PM(memorymode: MemoryMode, place):  # Uses GR3 and HR
 def decrease_location_in_PM(memorymode: MemoryMode, place):  # Uses GR3 and HR
     # Next two rows write 0001 to GR3 for future addition
     load_from_PM_To_GRx(MemoryMode.ImmediateLocation, 0x00, GRxLocations.three)
-    print(createASMHex(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, 0x01))
+    createASMHex(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, 0x01)
 
     # Increase D1 by one and move to HR
     createASMHex(len(K1) - 3, GRxLocations.three, memorymode, place)
@@ -384,11 +389,11 @@ def bubsort():
     compare_adr_with_grx(MemoryMode.IndirectLocation, GRxLocations.zero,
                          0xD1)  # Compare tmp2 with tmp (TMP<TMP2 => N=1)7
 
-    createASMHex(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x25) #Move to compare code below (the one with print), if N=0, else switch (next row)
+    createASMHex(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x19) #Move to compare code below (the one with print), if N=0, else switch (next row)
 
 
     switch()
-    save_num_in_place(0x00,0xD0) # list_stored=0'
+    save_num_in_place(0x00,0xD0) # list_stored=0
     # Alreade increased i
 
 
@@ -396,9 +401,12 @@ def bubsort():
     createASMHex(ASMModes.Load,GRxLocations.zero,MemoryMode.DirectLocation,0xFF) # 00FF
     compare_adr_with_grx(MemoryMode.DirectLocation,GRxLocations.three,0xD1) # Compare value at D1 with FF
 
-    
+    createASMHex(len(K1) - 2, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=createFirstTmpAdr) #Move to tmp load above , if Z=0 (D1!=FF), else check list sorted below
+    decrease_location_in_PM(MemoryMode.DirectLocation,0xD0) # Decrease list_sorted by one
+    createASMHex(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x23) #Continue on next row if N=1(List not sorted), else skip one (List sorted)
+    createASMHex(len(K1) - 9, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=savelistAdr)
 
-    halt()
+    print(halt())
 
 
 def main():
