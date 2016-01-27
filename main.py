@@ -346,11 +346,13 @@ def bubsort():
     increase_location_in_PM(MemoryMode.DirectLocation, 0xD1)
     load_from_PM_To_GRx(MemoryMode.IndirectLocation, 0xD1,
                         GRxLocations.one)  # Move value "i" to Gr1
-    compare_adr_with_grx(MemoryMode.IndirectLocation, GRxLocations.zero,
+    decrease_location_in_PM(MemoryMode.DirectLocation, 0xD1)
+    compare_adr_with_grx(MemoryMode.IndirectLocation, GRxLocations.one,
                          0xD1)  # Compare tmp2 with tmp (TMP<TMP2 => N=1)7
+    increase_location_in_PM(MemoryMode.DirectLocation, 0xD1)
 
     create_asm(5, GRxLocations.zero, MemoryMode.DirectLocation,
-               adressHex=0x19)  # Move to compare code below (the one with print), if N=0, else switch (next row)
+               adressHex=0x21)  # Move to compare code below (the one with print), if N=0, else switch (next row)
 
     switch()
     save_num_in_place(0x00, 0xD0)  # list_stored=0
@@ -366,7 +368,7 @@ def bubsort():
                adressHex=createFirstTmpAdr)  # Move to tmp load above , if Z=0 (D1!=FF), else check list sorted below
     decrease_location_in_PM(MemoryMode.DirectLocation, 0xD0)  # Decrease list_sorted by one
     create_asm(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation,
-               adressHex=0x23)  # Continue on next row if N=1(List not sorted), else skip one (List sorted)
+               adressHex=0x2B)  # Continue on next row if N=1(List not sorted), else skip one (List sorted)
     create_asm(len(K1) - 9, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=savelistAdr)
 
     print(halt())
