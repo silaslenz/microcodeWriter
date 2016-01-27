@@ -246,6 +246,30 @@ def create_microfun():
     # 35
     create_microcode(ALU_MODE.NOP, LOCATIONS.IR, LOCATIONS.PC, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
 
+    K1[5] = "36"
+    #36 if N=1, jump to 39 (O=1-check)
+    create_microcode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
+                     Seq.JumpIfN, adressHex=0x39)
+    # 37 if n=0, and O=0, run next (load adr). If N=0, O=1, move on
+    create_microcode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
+                     Seq.JumpIfO, adressHex=0x3A)
+    # 38, now n=0, O=0 > Load adress
+    create_microcode(ALU_MODE.NOP, LOCATIONS.IR, LOCATIONS.PC, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
+    # # 39 if n=0, O=1 just move on
+    # create_microcode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
+    #                  Seq.ToZero)
+    # # 3A if n=1 just move on
+    # create_microcode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
+    #                  Seq.ToZero)
+    # 39 - N=1, check O. If O=0, move on and dont jump. Else load adress
+    create_microcode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
+                     Seq.JumpIfO, adressHex=0x38)
+    #3A - N=1, O=0, move on
+    create_microcode(ALU_MODE.NOP, LOCATIONS.NOP, LOCATIONS.NOP, GRxControl.GRxField, PCAction.NOP, Loop.NOP,
+                     Seq.ToZero)
+    #3B - N=1, O=1, Load Adress
+    create_microcode(ALU_MODE.NOP, LOCATIONS.IR, LOCATIONS.PC, GRxControl.GRxField, PCAction.NOP, Loop.NOP, Seq.ToZero)
+
 
 def save_num_in_place(num, place):  # Uses GR3
     tmp = create_asm(ASMModes.Load, GRxLocations.three, MemoryMode.ImmediateLocation)
@@ -282,6 +306,80 @@ def decrease_location_in_PM(memorymode: MemoryMode, place):  # Uses GR3 and HR
     create_asm(len(K1) - 3, GRxLocations.three, memorymode, place)
     # Move HR to D1
     create_asm(len(K1) - 6, GRxLocations.zero, memorymode, place)
+
+
+
+
+def add_at_FE():
+    create_asm(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xFE)
+    create_asm(ASMModes.Load, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0xFE)
+    create_asm(ASMModes.Load, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0xFE)
+    create_asm(ASMModes.Load, GRxLocations.three, MemoryMode.DirectLocation, adressHex=0xFE)
+    create_asm(ASMModes.LogicShiftLeft, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x0C)
+    create_asm(ASMModes.And, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0xFB)
+    create_asm(ASMModes.And, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0xFC)
+    create_asm(ASMModes.And, GRxLocations.three, MemoryMode.DirectLocation, adressHex=0xFD)
+    create_asm(ASMModes.LogicShiftLeft, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0x08)
+    create_asm(ASMModes.LogicShiftLeft, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0x04)
+    create_asm(ASMModes.Store, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0xF7)
+    create_asm(ASMModes.Store, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0xF8)
+    create_asm(ASMModes.Store, GRxLocations.three, MemoryMode.DirectLocation, adressHex=0xF9)
+    create_asm(ASMModes.Add, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xF7)
+    create_asm(ASMModes.Add, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xF8)
+    create_asm(ASMModes.Add, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xF9)
+    create_asm(ASMModes.Store, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xFF)
+    create_asm(ASMModes.Halt, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x00)
+    write_mia_file()
+    # Remember to set FB-FD (0F00...000F)
+
+
+def compare_adr_with_grx(memorymode: MemoryMode, grx: GRxLocations, adr):
+    create_asm(ASMModes.Compare, grx, memorymode, adr)
+
+
+def bubsort():
+    savelistAdr = save_num_in_place(0x01, 0xD0)  # list sorted=1
+    save_num_in_place(0xE0, 0xD1)  # location in list, "i"
+
+    createFirstTmpAdr = load_from_PM_To_GRx(MemoryMode.IndirectLocation, 0xD1,
+                                            GRxLocations.zero)  # Move value "i" to Gr0 (tmp)
+    increase_location_in_PM(MemoryMode.DirectLocation, 0xD1)
+    load_from_PM_To_GRx(MemoryMode.IndirectLocation, 0xD1,
+                        GRxLocations.one)  # Move value "i" to Gr1
+    compare_adr_with_grx(MemoryMode.IndirectLocation, GRxLocations.zero,
+                         0xD1)  # Compare tmp2 with tmp (TMP<TMP2 => N=1)7
+
+    create_asm(5, GRxLocations.zero, MemoryMode.DirectLocation,
+               adressHex=0x19)  # Move to compare code below (the one with print), if N=0, else switch (next row)
+
+    switch()
+    save_num_in_place(0x00, 0xD0)  # list_stored=0
+    # Alreade increased i
+
+
+    print(load_from_PM_To_GRx(MemoryMode.ImmediateLocation, 0x00, GRxLocations.three),
+          "this is the location to jump to if tmp>tinmp2")  # Write next value to GR3
+    create_asm(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, 0xFF)  # 00FF
+    compare_adr_with_grx(MemoryMode.DirectLocation, GRxLocations.three, 0xD1)  # Compare value at D1 with FF
+
+    create_asm(len(K1) - 2, GRxLocations.zero, MemoryMode.DirectLocation,
+               adressHex=createFirstTmpAdr)  # Move to tmp load above , if Z=0 (D1!=FF), else check list sorted below
+    decrease_location_in_PM(MemoryMode.DirectLocation, 0xD0)  # Decrease list_sorted by one
+    create_asm(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation,
+               adressHex=0x23)  # Continue on next row if N=1(List not sorted), else skip one (List sorted)
+    create_asm(len(K1) - 9, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=savelistAdr)
+
+    print(halt())
+
+
+def main():
+    create_microfun()
+    bubsort()
+    write_mia_file()
+
+
+if __name__ == '__main__':
+    sys.exit(main())
 
 
 # def bubble_sort():
@@ -342,75 +440,3 @@ def decrease_location_in_PM(memorymode: MemoryMode, place):  # Uses GR3 and HR
 #     #
 #
 #     halt()
-
-
-def add_at_FE():
-    create_asm(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xFE)
-    create_asm(ASMModes.Load, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0xFE)
-    create_asm(ASMModes.Load, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0xFE)
-    create_asm(ASMModes.Load, GRxLocations.three, MemoryMode.DirectLocation, adressHex=0xFE)
-    create_asm(ASMModes.LogicShiftLeft, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x0C)
-    create_asm(ASMModes.And, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0xFB)
-    create_asm(ASMModes.And, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0xFC)
-    create_asm(ASMModes.And, GRxLocations.three, MemoryMode.DirectLocation, adressHex=0xFD)
-    create_asm(ASMModes.LogicShiftLeft, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0x08)
-    create_asm(ASMModes.LogicShiftLeft, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0x04)
-    create_asm(ASMModes.Store, GRxLocations.one, MemoryMode.DirectLocation, adressHex=0xF7)
-    create_asm(ASMModes.Store, GRxLocations.two, MemoryMode.DirectLocation, adressHex=0xF8)
-    create_asm(ASMModes.Store, GRxLocations.three, MemoryMode.DirectLocation, adressHex=0xF9)
-    create_asm(ASMModes.Add, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xF7)
-    create_asm(ASMModes.Add, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xF8)
-    create_asm(ASMModes.Add, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xF9)
-    create_asm(ASMModes.Store, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0xFF)
-    create_asm(ASMModes.Halt, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=0x00)
-    write_mia_file()
-    # Remember to set FB-FD (0F00...000F)
-
-
-def compare_adr_with_grx(memorymode: MemoryMode, grx: GRxLocations, adr):
-    create_asm(ASMModes.Compare, grx, memorymode, adr)
-
-
-def bubsort():
-    savelistAdr = save_num_in_place(0x01, 0xD0)  # list sorted=1
-    save_num_in_place(0xE0, 0xD1)  # location in list, "i"
-
-    createFirstTmpAdr = load_from_PM_To_GRx(MemoryMode.IndirectLocation, 0xD1,
-                                            GRxLocations.zero)  # Move value "i" to Gr0 (tmp)
-    increase_location_in_PM(MemoryMode.DirectLocation, 0xD1)
-    load_from_PM_To_GRx(MemoryMode.IndirectLocation, 0xD1,
-                        GRxLocations.one)  # Move value "i" to Gr1
-    compare_adr_with_grx(MemoryMode.IndirectLocation, GRxLocations.zero,
-                         0xD1)  # Compare tmp2 with tmp (TMP<TMP2 => N=1)7
-
-    create_asm(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation,
-               adressHex=0x19)  # Move to compare code below (the one with print), if N=0, else switch (next row)
-
-    switch()
-    save_num_in_place(0x00, 0xD0)  # list_stored=0
-    # Alreade increased i
-
-
-    print(load_from_PM_To_GRx(MemoryMode.ImmediateLocation, 0x00, GRxLocations.three),
-          "this is the location to jump to if tmp>tmp2")  # Write next value to GR3
-    create_asm(ASMModes.Load, GRxLocations.zero, MemoryMode.DirectLocation, 0xFF)  # 00FF
-    compare_adr_with_grx(MemoryMode.DirectLocation, GRxLocations.three, 0xD1)  # Compare value at D1 with FF
-
-    create_asm(len(K1) - 2, GRxLocations.zero, MemoryMode.DirectLocation,
-               adressHex=createFirstTmpAdr)  # Move to tmp load above , if Z=0 (D1!=FF), else check list sorted below
-    decrease_location_in_PM(MemoryMode.DirectLocation, 0xD0)  # Decrease list_sorted by one
-    create_asm(len(K1) - 1, GRxLocations.zero, MemoryMode.DirectLocation,
-               adressHex=0x23)  # Continue on next row if N=1(List not sorted), else skip one (List sorted)
-    create_asm(len(K1) - 9, GRxLocations.zero, MemoryMode.DirectLocation, adressHex=savelistAdr)
-
-    print(halt())
-
-
-def main():
-    create_microfun()
-    bubsort()
-    write_mia_file()
-
-
-if __name__ == '__main__':
-    sys.exit(main())
